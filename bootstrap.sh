@@ -6,6 +6,7 @@ Usage:
     bootstrap.sh [--with-mac-settings] [--with-nvm]
     -h | --help           Show usage information
     --with-mac-settings   Configure Mac OSX settings
+    --with-neovim         Configure NeoVim
     --with-nvm            Install with nvm support
 USAGE
     exit 1
@@ -13,6 +14,7 @@ USAGE
 
 NVM_VERSION=0.39.3
 WITH_MAC_SETTINGS=false
+WITH_NEOVIM=false
 WITH_NVM=false
 
 while [[ $# -gt 0 ]]; do
@@ -20,12 +22,12 @@ while [[ $# -gt 0 ]]; do
     -h | --help)
       usage
     ;;
-    --with-nvm)
-      WITH_NVM=true
-      shift 1
-    ;;
     --with-mac-settings)
       WITH_MAC_SETTINGS=true
+      shift 1
+    ;;
+    --with-neovim)
+      WITH_NEOVIM=true
       shift 1
     ;;
     --with-nvm)
@@ -40,10 +42,16 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Install Homebrew.
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+if ! command -v brew &> /dev/null; then
+  echo "installing homebrew..."
+
+  bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+fi
 
 brew update
 brew upgrade
+
+brew tap homebrew/cask-fonts
 
 brews=(
   ansible
@@ -51,6 +59,7 @@ brews=(
   awscli
   coreutils
   docker
+  font-hack-nerd-font
   gnupg
   git
   go
@@ -75,7 +84,6 @@ brew install "${brews[@]}"
 casks=(
   1password
   firefox
-  font-hack-nerd-font
   google-chrome
   iterm2
   postman
@@ -90,8 +98,9 @@ brew install --cask "${casks[@]}"
 
 brew cleanup
 
-if [ "$WITH_NVM" = true ]; then
+if [[ "$WITH_NVM" = true ]]; then
   echo "installing nvm..."
+
   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh | bash
   NVM_DIR="$HOME/.nvm"
   [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
@@ -100,7 +109,12 @@ if [ "$WITH_NVM" = true ]; then
   npm install --global yarn
 fi
 
-if [ "$WITH_MAC_SETTINGS" = true ]; then
+if [[ "$WITH_MAC_SETTINGS" == true ]]; then
+  echo "Configuring mac settings ..."
+
+  # Ask for admin password
+  sudo -v
+
   # keyboard repeat rate
   defaults write NSGlobalDomain KeyRepeat -int 1
   defaults write NSGlobalDomain InitialKeyRepeat -int 10
@@ -133,5 +147,13 @@ if [ "$WITH_MAC_SETTINGS" = true ]; then
   defaults write com.apple.commerce AutoUpdate -bool true
 fi
 
-# curl -sfL https://get.k3s.io | sh -
+if [[ $WITH_NEOVIM == true ]]; then
+  echo "configuring neovim..."
+
+  $GH_REMOTE_PATH=https://raw.githubusercontent.com/gmccue/cmptr/main/.config/nvim
+  mkdir -p $HOME/.config/nvim/lua
+  curl -O --output-dir $HOME/.config/nvim/ $GH_REMOTE_PATH/init.lua
+  curl -O --output-dir $HOME/.config/nvim/lua $GH_REMOTE_PATH/lua/plugins.lua
+fi
+
 echo "bootstrap complete!"
