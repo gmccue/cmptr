@@ -34,7 +34,8 @@ require('packer').startup(function(use)
   use { -- Highlight, edit, and navigate code
     'nvim-treesitter/nvim-treesitter',
     run = function()
-      pcall(require('nvim-treesitter.install').update { with_sync = true })
+      local ts_update = require('nvim-treesitter.install').update({ with_sync = true })
+      ts_update()
     end,
   }
 
@@ -151,7 +152,6 @@ require('Comment').setup()
 -- See `:help indent_blankline.txt`
 require('indent_blankline').setup {
   char = '┊',
-  show_trailing_blankline_indent = false,
 }
 
 -- Gitsigns
